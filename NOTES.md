@@ -104,3 +104,6 @@ Claims now use one grid: figure and descriptor share a baseline, body text align
 
 ## Verification
 axe-core WCAG 2 A/AA + best-practice: 0 violations. No horizontal overflow at 375 / 768 / 1024 / 1440. Main JS 85 kB gzip (+ 131 kB lazy 3D chunk), CSS 26 kB gzip.
+
+## Demo fallback (round 3)
+If `/api/inference/models` can't be loaded (after two quiet retries) the chat switches to **Demo preview**: sample models (`src/lib/demo.ts`), a local 5-question counter and scripted, word-streamed sample replies. A gold-bordered banner says so, shows the failure reason (e.g. `HTTP 404`) and offers **Retry live service**; the price chart is captioned "sample prices". Demo replies never claim to be model output. When the live API answers, the real models, quota and CAPTCHA are used as before. To remove the fallback, delete the `setModels(DEMO_MODELS)` / `setState("demo")` lines in `useModels`.

@@ -10,6 +10,7 @@
  * the failure is classified so the UI can say what actually went wrong.
  */
 import { useCallback, useEffect, useState } from "react";
+import { DEMO_MODELS } from "./demo";
 
 export type ModelInfo = {
   id: string;
@@ -44,7 +45,10 @@ export function blendedPrice(m: ModelInfo): number {
 export type ApiFailure = "unreachable" | "not-proxied" | "server" | "rate-limited";
 
 class ApiError extends Error {
-  constructor(public kind: ApiFailure) {
+  constructor(
+    public kind: ApiFailure,
+    public status?: number,
+  ) {
     super(kind);
   }
 }
@@ -57,10 +61,10 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
     if ((e as Error)?.name === "AbortError") throw e;
     throw new ApiError("unreachable");
   }
-  if (res.status === 429) throw new ApiError("rate-limited");
+  if (res.status === 429) throw new ApiError("rate-limited", 429);
   // A static host answers unknown paths with index.html (200, text/html).
-  if (!(res.headers.get("content-type") ?? "").includes("json")) throw new ApiError("not-proxied");
-  if (!res.ok) throw new ApiError("server");
+  if (!(res.headers.get("content-type") ?? "").includes("json")) throw new ApiError("not-proxied", res.status);
+  if (!res.ok) throw new ApiError("server", res.status);
   return res.json() as Promise<T>;
 }
 
@@ -79,12 +83,14 @@ export function failureMessage(kind: ApiFailure | null): string {
   }
 }
 
-export type LoadState = "loading" | "ready" | "empty" | "error";
+/** "demo" = the live service is unreachable, so labelled sample data is shown instead. */
+export type LoadState = "loading" | "ready" | "empty" | "demo";
 
 export function useModels() {
   const [models, setModels] = useState<ModelInfo[] | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [failure, setFailure] = useState<ApiFailure | null>(null);
+  const [detail, setDetail] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -99,17 +105,21 @@ export function useModels() {
         const live = all.filter((m) => m.available);
         setModels(live);
         setFailure(null);
+        setDetail(null);
         setState(live.length ? "ready" : "empty");
       } catch (e) {
         if ((e as Error)?.name === "AbortError") return;
         const kind = e instanceof ApiError ? e.kind : "server";
+        const status = e instanceof ApiError ? e.status : undefined;
         const retryable = kind === "server" || kind === "unreachable" || kind === "rate-limited";
         if (retryable && n < 2) {
           timer = window.setTimeout(() => run(n + 1), 700 * (n + 1));
           return;
         }
         setFailure(kind);
-        setState("error");
+        setDetail(status ? `HTTP ${status}` : kind);
+        setModels(DEMO_MODELS);
+        setState("demo");
       }
     };
     run(0);
@@ -120,7 +130,7 @@ export function useModels() {
   }, [attempt]);
 
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
-  return { models, state, failure, retry };
+  return { models, state, failure, detail, retry };
 }
 
 export function useTrialStatus() {

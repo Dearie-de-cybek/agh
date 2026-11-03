@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   blendedPrice,
-  failureMessage,
   streamTrialChat,
-  type ApiFailure,
   type ChatMessage,
   type LoadState,
   type ModelInfo,
   type TrialStatus,
 } from "../../lib/api";
 import { AUTH } from "../../lib/content";
+import { DEMO_LIMIT, streamDemoReply } from "../../lib/demo";
 import { HexMark, Send } from "./Icons";
 import { Turnstile } from "./Turnstile";
 
@@ -30,14 +29,14 @@ function splitName(name: string) {
 type Props = {
   models: ModelInfo[] | null;
   state: LoadState;
-  failure: ApiFailure | null;
+  detail: string | null;
   retryModels: () => void;
   status: TrialStatus | null;
   refresh: () => void;
 };
 
 /** The real free-trial chat: same endpoints, quota and CAPTCHA as the live site. */
-export function TrialChat({ models, state, failure, retryModels, status, refresh }: Props) {
+export function TrialChat({ models, state, detail, retryModels, status, refresh }: Props) {
   const [modelId, setModelId] = useState("");
   const [input, setInput] = useState("");
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -45,6 +44,7 @@ export function TrialChat({ models, state, failure, retryModels, status, refresh
   const [notice, setNotice] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
+  const [demoLeft, setDemoLeft] = useState(DEMO_LIMIT);
   const threadRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -68,11 +68,12 @@ export function TrialChat({ models, state, failure, retryModels, status, refresh
   }, [input]);
 
   const model = models?.find((m) => m.id === modelId);
-  const limit = status?.limit ?? 5;
-  const remaining = status?.remaining ?? null;
+  const demo = state === "demo";
+  const limit = demo ? DEMO_LIMIT : (status?.limit ?? 5);
+  const remaining = demo ? demoLeft : (status?.remaining ?? null);
   const exhausted = remaining !== null && remaining <= 0;
-  const captcha = !!status?.requiresCaptcha;
-  const ready = state === "ready" && !!model;
+  const captcha = !demo && !!status?.requiresCaptcha;
+  const ready = (state === "ready" || demo) && !!model;
   const prompts = useMemo(() => (model?.starterPrompts?.length ? model.starterPrompts : FALLBACK_PROMPTS), [model]);
   const lastUser = [...msgs].reverse().find((m) => m.role === "user")?.content;
 
@@ -90,6 +91,12 @@ export function TrialChat({ models, state, failure, retryModels, status, refresh
     const next: Msg[] = [...base, { role: "user", content: q }];
     setMsgs([...next, { role: "assistant", content: "" }]);
     setBusy(true);
+    if (demo) {
+      await streamDemoReply(splitName(model?.name ?? "the model").title, q, (t) => setMsgs([...next, { role: "assistant", content: t }]));
+      setDemoLeft((n) => Math.max(0, n - 1));
+      setBusy(false);
+      return;
+    }
     const res = await streamTrialChat({
       model: modelId,
       messages: next.filter((m) => !m.error).map(({ role, content }) => ({ role, content })),
@@ -133,6 +140,26 @@ export function TrialChat({ models, state, failure, retryModels, status, refresh
           </span>
         </div>
       </header>
+
+      {demo && (
+        <div className="demo" role="status">
+          <b>Demo preview</b>
+          <span>
+            The live model service can’t be reached from here{detail ? ` (${detail})` : ""}, so these are sample models and scripted replies — not real AI output.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setMsgs([]);
+              setModelId("");
+              setDemoLeft(DEMO_LIMIT);
+              retryModels();
+            }}
+          >
+            Retry live service
+          </button>
+        </div>
+      )}
 
       {/* model picker */}
       <div className="picker" role="radiogroup" aria-label="Choose a model">
@@ -185,21 +212,6 @@ export function TrialChat({ models, state, failure, retryModels, status, refresh
           <div className="state" aria-busy="true">
             <span className="state__spin" aria-hidden="true" />
             <p>Loading models…</p>
-          </div>
-        )}
-
-        {state === "error" && (
-          <div className="state state--error" role="alert">
-            <p className="state__title">Models couldn’t be loaded</p>
-            <p>{failureMessage(failure)}</p>
-            <div className="state__actions">
-              <button type="button" className="btn btn--primary" onClick={retryModels}>
-                Try again
-              </button>
-              <a className="link-arrow" href="/ai-models">
-                Open AI Models
-              </a>
-            </div>
           </div>
         )}
 

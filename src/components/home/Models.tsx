@@ -5,14 +5,14 @@ import { HexMark } from "./Icons";
 import { TrialChat } from "./TrialChat";
 
 /** Honest price chart: AGH's own stated frontier figure vs. live per-model prices from the API. */
-function PriceChart({ models }: { models: ModelInfo[] | null }) {
+function PriceChart({ models, sample }: { models: ModelInfo[] | null; sample: boolean }) {
   const [ref, seen] = useInView<HTMLDivElement>(0.3);
   const rows = [...(models ?? [])].sort((a, b) => blendedPrice(a) - blendedPrice(b));
   const max = MODELS.frontierPerMillion;
   const fmt = (n: number) => `$${n.toFixed(2)}`;
   return (
     <div className="price" ref={ref}>
-      <p className="mono price__cap">USD per million tokens · input + output</p>
+      <p className="mono price__cap">USD per million tokens · input + output{sample ? " · sample prices" : ""}</p>
       <ul>
         <li className="price__row price__row--ref">
           <span className="price__name">Frontier models, typical</span>
@@ -42,7 +42,7 @@ function PriceChart({ models }: { models: ModelInfo[] | null }) {
 export function Models() {
   const ref = useReveal<HTMLElement>();
   const { status, refresh } = useTrialStatus();
-  const { models, state, failure, retry } = useModels();
+  const { models, state, detail, retry } = useModels();
   const limit = status?.limit ?? 5;
   // lowest live price, as the existing homepage computes it; its stated $0.60 until the API answers
   const start = models?.length ? Math.min(...models.filter((m) => !m.isFree).map(blendedPrice)).toFixed(2) : "0.60";
@@ -89,12 +89,12 @@ export function Models() {
               })}
             </ol>
             <div className="reveal" style={{ ["--d" as string]: 3 }}>
-              <PriceChart models={models} />
+              <PriceChart models={models} sample={state === "demo"} />
             </div>
           </div>
 
           <div className="reveal" style={{ ["--d" as string]: 1 }}>
-            <TrialChat models={models} state={state} failure={failure} retryModels={retry} status={status} refresh={refresh} />
+            <TrialChat models={models} state={state} detail={detail} retryModels={retry} status={status} refresh={refresh} />
           </div>
         </div>
       </div>
