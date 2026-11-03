@@ -1,11 +1,9 @@
 import { HERO } from "../../lib/content";
-import { usePointerParallax } from "../../lib/hooks";
-import { HexSculpture } from "../loom/HexSculpture";
+import { LoomHero } from "../loom/LoomHero";
 import { StripBand } from "../loom/Art";
 import { ArrowRight } from "./Icons";
 
 export function Hero() {
-  const stage = usePointerParallax<HTMLDivElement>();
   const words = HERO.title.split(" "); // Sovereign / AI / starts / here.
   return (
     <section className="hero" aria-labelledby="hero-title">
@@ -27,10 +25,10 @@ export function Hero() {
           </div>
         </div>
 
-        <figure className="hero__stage" ref={stage}>
-          <HexSculpture className="hero__svg" />
-          <figcaption className="mono hero__cap" aria-hidden="true">
-            Fig. 01 — Compute pods, held in a loom
+        <figure className="hero__stage">
+          <LoomHero />
+          <figcaption className="hero__cap" aria-hidden="true">
+            Fig. 01 — The computational loom
           </figcaption>
         </figure>
       </div>
@@ -46,7 +44,7 @@ export function Hero() {
         </ul>
       </div>
 
-      <StripBand className="hero__strip" fg="#9a6cf4" />
+      <StripBand className="hero__strip" fg="#9a6cf4" variant="chevron" height={20} />
     </section>
   );
 }

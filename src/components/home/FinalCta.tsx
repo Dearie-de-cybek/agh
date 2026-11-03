@@ -8,7 +8,7 @@ export function FinalCta() {
   const ref = useReveal<HTMLElement>();
   return (
     <section className="cta" ref={ref} aria-labelledby="cta-title" data-testid="section-cta">
-      <StripBand className="cta__strip" fg="#090a0c" />
+      <StripBand className="cta__strip" fg="#090a0c" variant="diamond" height={22} />
       <Interlace className="cta__knot" r={230} rings={2} colorA="#ffffff" colorB="#090a0c" gap="#793bed" width={13} animate={false} />
       <div className="wrap cta__in">
         <h2 id="cta-title" className="display cta__title reveal">

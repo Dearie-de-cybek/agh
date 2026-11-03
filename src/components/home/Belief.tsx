@@ -1,12 +1,13 @@
 import { BELIEF } from "../../lib/content";
 import { useReveal } from "../../lib/hooks";
-import { AfricaTiles } from "../loom/Art";
+import { AfricaTiles, StripBand } from "../loom/Art";
 
 export function Belief() {
   const ref = useReveal<HTMLElement>();
   return (
     <section className="sec belief" ref={ref} aria-labelledby="belief-title" data-testid="section-belief">
-      <div className="belief__weave" aria-hidden="true" />
+      <StripBand className="belief__strip" fg="#9a6cf4" variant="stair" height={20} />
+      <div className="warp" aria-hidden="true" />
       <div className="wrap">
         <div className="belief__grid">
           <div className="belief__copy">

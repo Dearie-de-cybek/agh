@@ -5,33 +5,27 @@
  * (also listed in NOTES.md).
  */
 
-export const NAV_UTILITY = [
-  { label: "About", href: "/about" },
-  { label: "Africa AI Innovation", href: "/africa-ai-innovation" },
-  { label: "Africa AI Challenge", href: "/africa-ai-challenge" },
-  { label: "Philanthropy", href: "/philanthropy" },
-  { label: "Impact Stories", href: "/impact-stories" },
-  { label: "Cloud Management", href: "/cloud-dashboard" },
-  { label: "AI Models", href: "/ai-models" },
-];
-
 export type NavGroup = {
   label: string;
+  /** destination of the lead panel in the open menu */
   href: string;
+  leadTitle: string;
   blurb: string;
   items: { label: string; href: string; external?: boolean; badge?: string }[];
 };
 
+/**
+ * One consolidated primary navigation. Every destination from the previous
+ * two-row header is kept: the old utility row (About, Africa AI Innovation,
+ * Africa AI Challenge, Philanthropy, Impact Stories, Cloud Management,
+ * AI Models) now lives inside the menus or as a header action, and "Home" is
+ * the logo.
+ */
 export const NAV_MAIN: NavGroup[] = [
-  {
-    label: "AI Possibilities",
-    href: "/ai-possibilities",
-    blurb: "Discover how AI is transforming key sectors across the African continent.",
-    items: [{ label: "AI for Africa", href: "/ai-possibilities" }],
-  },
   {
     label: "Solutions",
     href: "/solutions",
+    leadTitle: "GPU Solutions",
     blurb: "Explore our comprehensive GPU rental and AI infrastructure services.",
     items: [
       { label: "Rent GPUs", href: "/cloud-dashboard" },
@@ -46,6 +40,7 @@ export const NAV_MAIN: NavGroup[] = [
   {
     label: "Packages",
     href: "/packages/creative-suite",
+    leadTitle: "Packages",
     blurb: "Ready-made building blocks for sovereign AI.",
     items: [
       { label: "Private AI", href: "/private-ai" },
@@ -55,8 +50,19 @@ export const NAV_MAIN: NavGroup[] = [
     ],
   },
   {
-    label: "Solution Partners",
+    label: "AI",
+    href: "/ai-possibilities",
+    leadTitle: "AI Possibilities",
+    blurb: "Discover how AI is transforming key sectors across the African continent.",
+    items: [
+      { label: "AI Possibilities", href: "/ai-possibilities" },
+      { label: "AI Models", href: "/ai-models" },
+    ],
+  },
+  {
+    label: "Partners",
     href: "/partners",
+    leadTitle: "Solution Partners",
     blurb: "Certified partners delivering enterprise and government-grade AI.",
     items: [
       { label: "Find Partners", href: "/partners" },
@@ -64,17 +70,31 @@ export const NAV_MAIN: NavGroup[] = [
     ],
   },
   {
-    label: "Blogs",
+    label: "Africa",
+    href: "/about",
+    leadTitle: "About AGH",
+    blurb: "Accelerating AI innovation across Africa through accessible, high-performance GPU infrastructure.",
+    items: [
+      { label: "About", href: "/about" },
+      { label: "Africa AI Innovation", href: "/africa-ai-innovation" },
+      { label: "Africa AI Challenge", href: "/africa-ai-challenge" },
+      { label: "Philanthropy", href: "/philanthropy" },
+    ],
+  },
+  {
+    label: "Stories",
     href: "/success-stories",
+    leadTitle: "Stories & Insights",
     blurb: "Real customer wins and articles from our partner network.",
     items: [
+      { label: "Impact Stories", href: "/impact-stories" },
       { label: "Success Stories", href: "/success-stories" },
       { label: "Partner Blogs", href: "https://udutech.co/blog", external: true },
     ],
   },
 ];
 
-export const AUTH = { signIn: "/login", signUp: "/signup" };
+export const AUTH = { signIn: "/login", signUp: "/signup", cloud: "/cloud-dashboard" };
 
 export const HERO = {
   tag: "Sovereign AI Cloud",

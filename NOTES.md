@@ -69,3 +69,38 @@ Gold is used only as tiny "rivet" nodes (echoing the logo's four gold corner riv
 ## Suggested content improvements (proposed, not applied)
 - Hero statement and body are unchanged. Consider adding a one-line proof point under the hero once item 4 above is resolved.
 - The models paragraph names models that are currently offline; consider "African language models and more" until they return.
+
+---
+
+# Refinement pass (round 2)
+
+## Models failed to load — diagnosis
+The message "Models couldn't be loaded right now" appears when the browser's `GET /api/inference/models` doesn't return JSON. I reproduced the **exact symptom** by serving the built `dist/` from a plain static host: `/api/*` then returns the host's 404/`index.html`, and the old client treated that as a failure. Through `npm run dev` and `npm run preview` the proxy works and the real models load (Sunflower 14B, N-ATLaS 8B). aghcloud.ai sends **no CORS headers**, so a page on any other origin cannot call it directly.
+What changed (no fake data was added):
+- `vite.config.ts`: `/api` proxy now explicit for **both** `dev` and `preview`; `VITE_API_ORIGIN` overrides the target.
+- `src/lib/api.ts`: responses are classified (`not-proxied`, `unreachable`, `rate-limited`, `server`), transient failures auto-retry twice, and "no live models" is its own state instead of an error.
+- UI: loading skeletons, an error panel with the real reason (specific in dev, plain in production), **Try again**, an "Open AI Models" fallback link, an empty state, and a disabled composer while unavailable.
+- **Deploying anywhere other than aghcloud.ai** requires proxying/rewriting `/api/*` to `https://aghcloud.ai` (or the real backend). Inside the existing app this already works.
+
+## Hero: the Computational Loom
+Replaced the flat-shaded prism cluster with a real-time 3D scene (three.js, lazy-loaded, ~131 kB gzip, never blocks the headline): bevelled PBR materials, soft shadows, environment reflections, violet rim light, window glow spilling on the plinth. The object is a strip-weaving loom: stepped monoliths + lintel + heddle bar, 55 taut warp threads, and woven cloth set in **narrow strips** (chevron / diamond chain / stair) that opens into a diamond window of compute modules — textile becomes hardware. A shuttle lays the next row; light climbs the warp. One gold rivet echoes the logo's gold nodes.
+- A pre-rendered frame of the same scene (`public/brand/loom-poster.webp`, 125 kB) is the instant paint and the fallback for reduced-motion, Save-Data and no-WebGL.
+- Re-generate the poster after changing the scene: run dev, then in the console `await fetch('/__save?name=loom-poster.webp',{method:'POST',body:await (await fetch(window.__loomCapture(1200,1100))).blob()})` (dev-only endpoint).
+
+## African design language (one system, three voices)
+1. **Strip** — narrow-loom strip cloth: `StripBand` dividers (chevron / diamond / stair, rotated so neighbours never match) and the App Store art, now six stitched strips each carrying a different motif.
+2. **Warp** — faint vertical thread-lines (`.warp`) on the Models and Belief grounds only.
+3. **Hex + trace** — the logo's hexagon and circuit-trace terminators in pods, partners, credits and the tile-map of Africa.
+Palette unchanged; gold remains rivet-sized.
+
+## Navigation
+Two rows → **one header**. Logo larger (3.5 rem), six grouped menus (Solutions, Packages, AI, Partners, Africa, Stories), Cloud Management / Sign In / Sign Up as actions. Every old destination is kept: the utility row now lives in *Africa* (About, Africa AI Innovation, Africa AI Challenge, Philanthropy), *AI* (AI Possibilities, AI Models), *Stories* (Impact Stories, Success Stories, Partner Blogs) and the *Cloud Management* action; "Home" is the logo. Below 1180 px it becomes a full-height sheet with accordions and scroll lock.
+
+## AI interface
+Model picker cards (name, origin, live price), five-segment quota bar, welcome state with numbered prompts, bubble/avatar conversation, streaming caret + typing indicator, auto-growing composer (Enter sends, Shift+Enter newline), retry-this-question on failed answers, quota-exhausted panel (→ AI Models / Sign up), CAPTCHA notice. Still the real `/api/trial/*` backend.
+
+## Typography / spacing
+Claims now use one grid: figure and descriptor share a baseline, body text aligns to the descriptor column (40ch). Shared heading scale (`.sec__title` 2–3.35 rem), section padding 4.5–7.5 rem, smaller closing statement in Belief, package numerals/titles reduced, body copy 1.05 rem / 1.6 line-height. Nothing was enlarged for impact.
+
+## Verification
+axe-core WCAG 2 A/AA + best-practice: 0 violations. No horizontal overflow at 375 / 768 / 1024 / 1440. Main JS 85 kB gzip (+ 131 kB lazy 3D chunk), CSS 26 kB gzip.

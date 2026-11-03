@@ -5,28 +5,52 @@ import { SQ3, hexVerts, pts, type P } from "./geometry";
 /*  Shared vocabulary                                                  */
 /* ------------------------------------------------------------------ */
 
-/** A woven divider: a repeating hex-and-chevron module, like a narrow-loom strip. */
+export type StripVariant = "chevron" | "diamond" | "stair";
+
+/**
+ * Woven divider. Three motifs taken from narrow-loom strip cloth — chevron,
+ * diamond chain, stair — drawn as one repeating 24px module so they read as a
+ * continuous woven band. Variants are rotated between sections so no two
+ * adjacent dividers match.
+ */
 export function StripBand({
   fg = "currentColor",
   height = 22,
+  variant = "diamond",
   className,
 }: {
   fg?: string;
   height?: number;
+  variant?: StripVariant;
   className?: string;
 }) {
   const id = useId().replace(/:/g, "");
-  const w = 44;
-  const h = 22;
-  const hex = hexVerts(11, 11, 8, 0);
+  const tile = {
+    chevron: { w: 24, node: (
+      <>
+        <path d="M0 8 L12 0 L24 8" fill="none" stroke={fg} strokeWidth="2" />
+        <path d="M0 15 L12 7 L24 15" fill="none" stroke={fg} strokeWidth="2" opacity="0.65" />
+        <path d="M0 22 L12 14 L24 22" fill="none" stroke={fg} strokeWidth="2" opacity="0.35" />
+      </>
+    ) },
+    diamond: { w: 24, node: (
+      <>
+        <path d="M12 1 L23 12 L12 23 L1 12 Z" fill="none" stroke={fg} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M12 8 L16 12 L12 16 L8 12 Z" fill={fg} />
+      </>
+    ) },
+    stair: { w: 24, node: (
+      <>
+        <path d="M0 22 H6 V15 H12 V8 H18 V1 H24" fill="none" stroke={fg} strokeWidth="2" strokeLinejoin="miter" />
+        <path d="M0 22 H6 V15 H12 V8 H18 V1 H24 V22 Z" fill={fg} opacity="0.22" />
+      </>
+    ) },
+  }[variant];
   return (
-    <svg className={className} width="100%" height={height} aria-hidden="true" focusable="false" preserveAspectRatio="none">
+    <svg className={className} width="100%" height={height} aria-hidden="true" focusable="false">
       <defs>
-        <pattern id={id} width={w} height={h} patternUnits="userSpaceOnUse" patternTransform={`scale(${height / h})`}>
-          <polygon points={pts(hex)} fill="none" stroke={fg} strokeWidth="1.6" />
-          <circle cx="11" cy="11" r="2" fill={fg} />
-          <path d="M22 11 L33 3 L44 11 L33 19 Z" fill="none" stroke={fg} strokeWidth="1.6" strokeLinejoin="round" />
-          <path d="M26 11 L33 6 L40 11 L33 16 Z" fill={fg} opacity="0.35" />
+        <pattern id={id} width={tile.w} height={24} patternUnits="userSpaceOnUse" patternTransform={`scale(${height / 24})`}>
+          {tile.node}
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill={`url(#${id})`} />
@@ -108,61 +132,51 @@ export function RackArt({ className }: { className?: string }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  03 — AI App Store & Creative Suite (strip-cloth mosaic)            */
+/*  03 — AI App Store & Creative Suite (narrow-loom strips)            */
 /* ------------------------------------------------------------------ */
 export function AppsArt({ className }: { className?: string }) {
-  const cols = 6;
-  const rows = 3;
-  const t = 64;
-  const palette = ["#793bed", "#14123a", "#d9c9fb", "#f4f4f5", "#9a6cf4"];
-  const glyph = (kind: number, x: number, y: number, fg: string, bg: string) => {
-    const c = t / 2;
-    switch (kind % 6) {
-      case 0:
-        return <polygon points={pts(hexVerts(x + c, y + c, 22, 0))} fill={fg} />;
-      case 1:
-        return <path d={`M${x + 10} ${y + t - 10} L${x + c} ${y + 10} L${x + t - 10} ${y + t - 10} Z`} fill={fg} />;
-      case 2:
+  const strips = 6;
+  const W = 64; // strip width = one cell
+  const H = 192; // three cells tall
+  const set = [
+    { bg: "#793bed", fg: "#d9c9fb" },
+    { bg: "#14123a", fg: "#9a6cf4" },
+    { bg: "#d9c9fb", fg: "#5a22b8" },
+    { bg: "#5a22b8", fg: "#f4f4f5" },
+    { bg: "#f4f4f5", fg: "#793bed" },
+    { bg: "#9a6cf4", fg: "#14123a" },
+  ];
+  const cell = (kind: number, x: number, y: number, fg: string) => {
+    const c = W / 2;
+    switch (kind) {
+      case 0: // chevron stack
+        return [14, 30, 46].map((o) => <path key={o} d={`M${x + 8} ${y + o} L${x + c} ${y + o - 12} L${x + W - 8} ${y + o}`} fill="none" stroke={fg} strokeWidth="5" strokeLinejoin="miter" />);
+      case 1: // nested diamond
         return (
           <>
-            <path d={`M${x + 8} ${y + 24} L${x + c} ${y + 10} L${x + t - 8} ${y + 24}`} fill="none" stroke={fg} strokeWidth="6" strokeLinejoin="round" />
-            <path d={`M${x + 8} ${y + 44} L${x + c} ${y + 30} L${x + t - 8} ${y + 44}`} fill="none" stroke={fg} strokeWidth="6" strokeLinejoin="round" />
+            <path d={`M${x + c} ${y + 6} L${x + W - 6} ${y + c} L${x + c} ${y + W - 6} L${x + 6} ${y + c} Z`} fill="none" stroke={fg} strokeWidth="5" />
+            <path d={`M${x + c} ${y + 24} L${x + 40} ${y + c} L${x + c} ${y + 40} L${x + 24} ${y + c} Z`} fill={fg} />
           </>
         );
-      case 3:
-        return <path d={`M${x + 10} ${y + c} A22 22 0 0 1 ${x + t - 10} ${y + c} Z`} fill={fg} />;
-      case 4:
-        return (
-          <>
-            {[0, 1, 2, 3].map((i) => (
-              <rect key={i} x={x + 12 + i * 11} y={y + 12 + (i % 2) * 8} width="6" height={t - 32 - (i % 2) * 8} fill={fg} />
-            ))}
-          </>
-        );
-      default:
-        return (
-          <>
-            <circle cx={x + c} cy={y + c} r="20" fill="none" stroke={fg} strokeWidth="6" />
-            <circle cx={x + c} cy={y + c} r="6" fill={bg === "#793bed" ? "#fff" : "#793bed"} />
-          </>
-        );
+      case 2: // stair
+        return <path d={`M${x + 6} ${y + 58} V${y + 44} H${x + 22} V${y + 30} H${x + 38} V${y + 16} H${x + 58} V${y + 58} Z`} fill={fg} />;
+      case 3: // zigzag
+        return <path d={`M${x + 12} ${y + 6} L${x + 52} ${y + 22} L${x + 12} ${y + 38} L${x + 52} ${y + 54}`} fill="none" stroke={fg} strokeWidth="6" strokeLinejoin="miter" />;
+      default: // dot lattice
+        return [0, 1, 2].flatMap((i) => [0, 1, 2].map((j) => <rect key={`${i}${j}`} x={x + 10 + i * 18} y={y + 10 + j * 18} width="10" height="10" transform={`rotate(45 ${x + 15 + i * 18} ${y + 15 + j * 18})`} fill={fg} opacity={(i + j) % 2 ? 1 : 0.5} />));
     }
   };
   return (
-    <svg className={className} viewBox={`0 0 ${cols * t} ${rows * t}`} role="img" aria-label="A woven mosaic of geometric tiles, representing a catalogue of deployable apps.">
-      {Array.from({ length: rows * cols }, (_, n) => {
-        const cx = n % cols;
-        const cy = Math.floor(n / cols);
-        const bg = palette[(cx * 2 + cy * 3) % palette.length];
-        const light = bg === "#d9c9fb" || bg === "#f4f4f5";
-        const fg = light ? "#14123a" : bg === "#793bed" ? "#fff" : "#d9c9fb";
-        return (
-          <g key={n} className="art-tile" style={{ ["--i" as string]: n }}>
-            <rect x={cx * t} y={cy * t} width={t} height={t} fill={bg} />
-            {glyph(cx + cy * 2, cx * t, cy * t, fg, bg)}
-          </g>
-        );
-      })}
+    <svg className={className} viewBox={`0 0 ${strips * W} ${H}`} role="img" aria-label="Six narrow woven strips, each carrying a different geometric motif, stitched side by side — a catalogue of deployable apps.">
+      {Array.from({ length: strips }, (_, s) => (
+        <g key={s} className="art-tile" style={{ ["--i" as string]: s }}>
+          <rect x={s * W} y={0} width={W} height={H} fill={set[s].bg} />
+          {[0, 1, 2].map((r) => (
+            <g key={r}>{cell((s + (s % 2 ? r : 0)) % 5, s * W, r * W, set[s].fg)}</g>
+          ))}
+          <line x1={s * W} y1="0" x2={s * W} y2={H} stroke="#090a0c" strokeOpacity="0.35" strokeWidth="2" />
+        </g>
+      ))}
     </svg>
   );
 }

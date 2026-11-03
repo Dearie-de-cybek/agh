@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { AUTH, NAV_MAIN, NAV_UTILITY } from "../../lib/content";
-import { Chevron, External, Menu } from "./Icons";
+import { AUTH, NAV_MAIN } from "../../lib/content";
+import { Chevron, External, HexMark, Menu } from "./Icons";
+
+const slug = (s: string) => s.replace(/\W+/g, "-").toLowerCase();
 
 export function SiteHeader() {
   const [open, setOpen] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
-  const barRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -25,41 +27,38 @@ export function SiteHeader() {
     };
   }, []);
 
+  // lock page scroll behind the mobile sheet
+  useEffect(() => {
+    document.documentElement.style.overflow = mobile ? "hidden" : "";
+    return () => {
+      document.documentElement.style.overflow = "";
+    };
+  }, [mobile]);
+
+  const hover = () => matchMedia("(hover:hover) and (min-width: 1181px)").matches;
+
   return (
     <header className="site-header" ref={barRef}>
-      <div className="utility" aria-label="Quick links">
-        <div className="wrap utility__in">
-          {NAV_UTILITY.map((l) => (
-            <a key={l.href} href={l.href}>
-              {l.label}
-            </a>
-          ))}
-        </div>
-      </div>
-
       <div className="wrap bar">
         <a href="/" className="brand" aria-label="AGH Cloud — powered by Udu Technologies, home">
           <img src="/brand/agh-lockup.webp" width="640" height="231" fetchPriority="high" alt="AGH Cloud — powered by Udu Technologies" />
         </a>
 
-        <nav className={`nav${mobile ? " is-open" : ""}`} aria-label="Primary">
-          <ul>
-            <li>
-              <a href="/" className="nav__top">
-                Home
-              </a>
-            </li>
-            {NAV_MAIN.map((g) => {
+        <nav id="site-nav" className={`nav${mobile ? " is-open" : ""}`} aria-label="Primary">
+          <ul className="nav__groups">
+            {NAV_MAIN.map((g, gi) => {
               const isOpen = open === g.label;
+              const id = `menu-${slug(g.label)}`;
               return (
-                <li key={g.label} onMouseEnter={() => matchMedia("(hover:hover)").matches && setOpen(g.label)} onMouseLeave={() => matchMedia("(hover:hover)").matches && setOpen(null)}>
-                  <button type="button" className="nav__top" aria-expanded={isOpen} aria-controls={`m-${g.label.replace(/\s/g, "")}`} onClick={() => setOpen(isOpen ? null : g.label)}>
+                <li key={g.label} onMouseEnter={() => hover() && setOpen(g.label)} onMouseLeave={() => hover() && setOpen(null)}>
+                  <button type="button" className="nav__top" aria-expanded={isOpen} aria-controls={id} onClick={() => setOpen(isOpen ? null : g.label)}>
                     {g.label}
                     <Chevron />
                   </button>
-                  <div className="menu" id={`m-${g.label.replace(/\s/g, "")}`} hidden={!isOpen}>
+                  <div className={`menu${gi >= NAV_MAIN.length - 2 ? " menu--end" : ""}${g.items.length > 5 ? " menu--wide" : ""}`} id={id} hidden={!isOpen}>
                     <a className="menu__lead" href={g.href}>
-                      <span className="display">{g.label}</span>
+                      <HexMark />
+                      <span className="display">{g.leadTitle}</span>
                       <span>{g.blurb}</span>
                     </a>
                     <ul>
@@ -78,8 +77,13 @@ export function SiteHeader() {
               );
             })}
           </ul>
-          <div className="nav__auth">
-            <a href={AUTH.signIn} className="nav__top">
+
+          <div className="nav__actions">
+            <a href={AUTH.cloud} className="nav__cloud">
+              <HexMark />
+              Cloud Management
+            </a>
+            <a href={AUTH.signIn} className="nav__signin">
               Sign In
             </a>
             <a href={AUTH.signUp} className="btn btn--primary">
@@ -88,7 +92,7 @@ export function SiteHeader() {
           </div>
         </nav>
 
-        <button type="button" className="burger" aria-label="Toggle Menu" aria-expanded={mobile} onClick={() => setMobile((v) => !v)}>
+        <button type="button" className="burger" aria-label="Toggle Menu" aria-expanded={mobile} aria-controls="site-nav" onClick={() => setMobile((v) => !v)}>
           <Menu open={mobile} />
         </button>
       </div>

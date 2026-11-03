@@ -42,12 +42,13 @@ function PriceChart({ models }: { models: ModelInfo[] | null }) {
 export function Models() {
   const ref = useReveal<HTMLElement>();
   const { status, refresh } = useTrialStatus();
-  const { models, failed } = useModels();
+  const { models, state, failure, retry } = useModels();
   const limit = status?.limit ?? 5;
   // lowest live price, as the existing homepage computes it; its stated $0.60 until the API answers
   const start = models?.length ? Math.min(...models.filter((m) => !m.isFree).map(blendedPrice)).toFixed(2) : "0.60";
   return (
     <section id="ai-trial" className="sec models-sec" ref={ref} aria-labelledby="models-title" data-testid="section-culture-tuned">
+      <div className="warp" aria-hidden="true" />
       <div className="wrap">
         <header className="sec__head reveal">
           <p className="eyebrow">{MODELS.eyebrow}</p>
@@ -60,22 +61,32 @@ export function Models() {
         <div className="models-grid">
           <div className="claims">
             <ol className="ledger">
-              {MODELS.claims.map((c, i) => (
-                <li key={c.key} className="reveal" style={{ ["--d" as string]: i }}>
-                  <span className="ledger__mark">
-                    {c.key === "cheaper" && <b className="display">5–10×</b>}
-                    {c.key === "correct" && <b className="display">2–3×</b>}
-                    {c.key === "sovereign" && <HexMark filled />}
-                  </span>
-                  <div>
-                    <h3>{c.title}</h3>
-                    <p>
+              {MODELS.claims.map((c, i) => {
+                // "5–10x cheaper than frontier models" → big figure + descriptor, one heading
+                const m = c.title.match(/^([\d–-]+x)\s+(.*)$/);
+                return (
+                  <li key={c.key} className="claim reveal" style={{ ["--d" as string]: i }}>
+                    <h3 className="claim__title">
+                      {m ? (
+                        <>
+                          <span className="claim__metric display">{m[1]}</span> <span className="claim__label">{m[2]}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="claim__metric claim__metric--icon" aria-hidden="true">
+                            <HexMark filled />
+                          </span>{" "}
+                          <span className="claim__label">{c.title}</span>
+                        </>
+                      )}
+                    </h3>
+                    <p className="claim__body">
                       {c.body}
                       {c.key === "cheaper" && <> Ours start at ${start} per million — same conversations, a fraction of the bill.</>}
                     </p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ol>
             <div className="reveal" style={{ ["--d" as string]: 3 }}>
               <PriceChart models={models} />
@@ -83,7 +94,7 @@ export function Models() {
           </div>
 
           <div className="reveal" style={{ ["--d" as string]: 1 }}>
-            <TrialChat models={models} failed={failed} status={status} refresh={refresh} />
+            <TrialChat models={models} state={state} failure={failure} retryModels={retry} status={status} refresh={refresh} />
           </div>
         </div>
       </div>

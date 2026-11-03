@@ -4,7 +4,7 @@ import { StripBand } from "../loom/Art";
 export function SiteFooter() {
   return (
     <footer className="foot">
-      <StripBand className="foot__strip" fg="#9a6cf4" height={18} />
+      <StripBand className="foot__strip" fg="#9a6cf4" height={16} variant="stair" />
       <div className="wrap foot__grid">
         <div className="foot__brand">
           <img src="/brand/agh-footer.png" width="675" height="214" loading="lazy" alt={FOOTER.brand} />

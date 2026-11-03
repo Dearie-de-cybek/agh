@@ -3,6 +3,11 @@
  *   GET  /api/inference/models  → public model catalogue + pricing
  *   GET  /api/trial/status      → { limit, used, remaining, requiresCaptcha }
  *   POST /api/trial/chat        → SSE stream (OpenAI-style chat.completion deltas)
+ *
+ * These are same-origin paths. aghcloud.ai sends no CORS headers, so the page
+ * must be served from aghcloud.ai or from a host that proxies /api/* to it
+ * (Vite dev/preview do this — see vite.config.ts). When /api isn't reachable
+ * the failure is classified so the UI can say what actually went wrong.
  */
 import { useCallback, useEffect, useState } from "react";
 
@@ -35,33 +40,103 @@ export function blendedPrice(m: ModelInfo): number {
   return parseFloat(m.pricing.inputPerMTokens) + parseFloat(m.pricing.outputPerMTokens);
 }
 
+/** Why a request to /api failed. */
+export type ApiFailure = "unreachable" | "not-proxied" | "server" | "rate-limited";
+
+class ApiError extends Error {
+  constructor(public kind: ApiFailure) {
+    super(kind);
+  }
+}
+
+async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(path, { credentials: "include", headers: { Accept: "application/json" }, signal });
+  } catch (e) {
+    if ((e as Error)?.name === "AbortError") throw e;
+    throw new ApiError("unreachable");
+  }
+  if (res.status === 429) throw new ApiError("rate-limited");
+  // A static host answers unknown paths with index.html (200, text/html).
+  if (!(res.headers.get("content-type") ?? "").includes("json")) throw new ApiError("not-proxied");
+  if (!res.ok) throw new ApiError("server");
+  return res.json() as Promise<T>;
+}
+
+export function failureMessage(kind: ApiFailure | null): string {
+  switch (kind) {
+    case "not-proxied":
+      return import.meta.env.DEV
+        ? "This page can’t reach the AGH API: /api isn’t proxied to aghcloud.ai on this host."
+        : "We couldn’t reach the model service. Please try again shortly.";
+    case "rate-limited":
+      return "Too many requests just now. Please wait a moment and try again.";
+    case "unreachable":
+      return "You appear to be offline, or the model service can’t be reached.";
+    default:
+      return "The model service had a problem. Please try again.";
+  }
+}
+
+export type LoadState = "loading" | "ready" | "empty" | "error";
+
 export function useModels() {
   const [models, setModels] = useState<ModelInfo[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [state, setState] = useState<LoadState>("loading");
+  const [failure, setFailure] = useState<ApiFailure | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     const ac = new AbortController();
-    fetch("/api/inference/models", { credentials: "include", signal: ac.signal })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((d: ModelInfo[]) => setModels(d.filter((m) => m.available)))
-      .catch((e) => {
-        if (e?.name !== "AbortError") setFailed(true);
-      });
-    return () => ac.abort();
-  }, []);
-  return { models, failed };
+    let timer: number | undefined;
+    setState("loading");
+    // quiet automatic retries (transient 5xx / cold start) before surfacing an error
+    const run = async (n: number) => {
+      try {
+        const all = await getJson<ModelInfo[]>("/api/inference/models", ac.signal);
+        if (!Array.isArray(all)) throw new ApiError("server");
+        const live = all.filter((m) => m.available);
+        setModels(live);
+        setFailure(null);
+        setState(live.length ? "ready" : "empty");
+      } catch (e) {
+        if ((e as Error)?.name === "AbortError") return;
+        const kind = e instanceof ApiError ? e.kind : "server";
+        const retryable = kind === "server" || kind === "unreachable" || kind === "rate-limited";
+        if (retryable && n < 2) {
+          timer = window.setTimeout(() => run(n + 1), 700 * (n + 1));
+          return;
+        }
+        setFailure(kind);
+        setState("error");
+      }
+    };
+    run(0);
+    return () => {
+      ac.abort();
+      window.clearTimeout(timer);
+    };
+  }, [attempt]);
+
+  const retry = useCallback(() => setAttempt((a) => a + 1), []);
+  return { models, state, failure, retry };
 }
 
 export function useTrialStatus() {
   const [status, setStatus] = useState<TrialStatus | null>(null);
   const refresh = useCallback(() => {
-    fetch("/api/trial/status", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((d: TrialStatus) => setStatus(d))
-      .catch(() => {});
+    getJson<TrialStatus>("/api/trial/status")
+      .then(setStatus)
+      .catch(() => {
+        /* the meter simply stays hidden; chat itself reports its own errors */
+      });
   }, []);
   useEffect(refresh, [refresh]);
   return { status, refresh };
 }
+
+export type ChatResult = { ok: true; text: string } | { ok: false; error: string; kind: "quota" | "captcha" | "other" };
 
 /** Streams a trial answer; calls onDelta with the accumulated text. */
 export async function streamTrialChat(opts: {
@@ -69,7 +144,7 @@ export async function streamTrialChat(opts: {
   messages: ChatMessage[];
   turnstileToken?: string | null;
   onDelta: (text: string) => void;
-}): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+}): Promise<ChatResult> {
   try {
     const res = await fetch("/api/trial/chat", {
       method: "POST",
@@ -84,7 +159,9 @@ export async function streamTrialChat(opts: {
     });
     if (!res.ok || !res.body) {
       const j = await res.json().catch(() => null);
-      return { ok: false, error: j?.error?.message || "Something went wrong. Please try again." };
+      const msg: string = j?.error?.message || "Something went wrong. Please try again.";
+      const kind = res.status === 429 || /limit|free question/i.test(msg) ? "quota" : /captcha|security|turnstile/i.test(msg) ? "captcha" : "other";
+      return { ok: false, error: msg, kind };
     }
     const reader = res.body.getReader();
     const dec = new TextDecoder();
@@ -112,8 +189,8 @@ export async function streamTrialChat(opts: {
         }
       }
     }
-    return text ? { ok: true, text } : { ok: false, error: "The model didn't return an answer. Please try again." };
+    return text ? { ok: true, text } : { ok: false, error: "The model didn’t return an answer. Please try again.", kind: "other" };
   } catch {
-    return { ok: false, error: "Connection problem — please try again." };
+    return { ok: false, error: "Connection problem — please try again.", kind: "other" };
   }
 }

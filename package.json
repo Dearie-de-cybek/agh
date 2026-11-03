@@ -14,11 +14,14 @@
     "@fontsource/danfo": "^5.2.0",
     "@fontsource/jetbrains-mono": "^5.2.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "three": "^0.180.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^5.0.0",
     "axe-core": "^4.14.0",
     "typescript": "^5.6.0",
