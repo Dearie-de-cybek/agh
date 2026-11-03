@@ -1,0 +1,66 @@
+/*
+  AGH Cloud — design tokens ("Loom" system)
+
+  Colour is taken from the live site, not invented:
+    --violet-500  = hsl(261 83% 58%)  → site --primary (rgb 121 59 237)
+    --ink-950     = rgb(9 10 12)      → site foreground
+    --slate-900   = rgb(15 23 42)     → site footer
+    --logo-purple / --logo-gold       → sampled from the AGH Cloud lockup
+  Night tones are derived from the existing hero photograph's navy ground.
+*/
+:root {
+  /* brand */
+  --violet-700: #5a22b8;
+  --violet-600: #6a2fd6;
+  --violet-500: #793bed;
+  --violet-400: #9a6cf4;
+  --violet-300: #b99bf8;
+  --violet-200: #d9c9fb;
+  --violet-100: #eee7fd;
+  --logo-purple: #7a2cb3;
+  --logo-gold: #b8860b;
+
+  /* neutrals */
+  --ink-950: #090a0c;
+  --night-950: #070718;
+  --night-900: #0b0a22;
+  --night-800: #14123a;
+  --night-700: #1f1c52;
+  --slate-900: #0f172a;
+  --paper: #f4f4f5;
+  --paper-2: #e9e9ec;
+  --white: #ffffff;
+  --muted: #5d6270; /* AA on paper and white */
+  --line: rgb(9 10 12 / 0.14);
+  --line-dark: rgb(255 255 255 / 0.16);
+
+  /* semantic */
+  --bg: var(--white);
+  --fg: var(--ink-950);
+  --accent: var(--violet-500);
+  --focus: var(--violet-400);
+
+  /* type */
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", "DM Sans Variable", system-ui, sans-serif;
+  --font-body: "DM Sans Variable", "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-glyph: "Danfo", "Bricolage Grotesque Variable", system-ui, sans-serif;
+
+  /* fluid scale */
+  --step--1: clamp(0.8rem, 0.78rem + 0.1vw, 0.875rem);
+  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --step-1: clamp(1.2rem, 1.1rem + 0.5vw, 1.5rem);
+  --step-2: clamp(1.6rem, 1.3rem + 1.4vw, 2.4rem);
+  --step-3: clamp(2.1rem, 1.5rem + 2.8vw, 3.8rem);
+  --step-4: clamp(2.8rem, 1.6rem + 5.4vw, 6.4rem);
+  --step-5: clamp(3.4rem, 1.4rem + 9vw, 9.6rem);
+
+  /* layout */
+  --gutter: clamp(1.1rem, 4vw, 3rem);
+  --max: 1320px;
+  --header-h: 4.25rem;
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-weave: cubic-bezier(0.65, 0, 0.35, 1);
+}
